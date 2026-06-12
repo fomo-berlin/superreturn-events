@@ -18,55 +18,78 @@ function getText(prop) {
   if (prop.select) return prop.select.name || '';
   if (prop.multi_select) return prop.multi_select.map(s => s.name).join(', ');
   if (prop.date) return prop.date.start || '';
+  if (prop.url) return prop.url || '';
   return '';
 }
 
-async function fetchEvents() {
-  console.log('📡 Rufe Events aus Notion ab ...');
-  const response = await notion.databases.query({
-    database_id: DATABASE_ID,
-    sorts: [
-      { property: 'Datum', direction: 'ascending' },
-      { property: 'Start', direction: 'ascending' }
-    ]
-  });
+async function fetchAllEvents() {
+  let allResults = [];
+  let hasMore = true;
+  let startCursor = undefined;
 
-  console.log(`✅ ${response.results.length} Events gefunden.`);
+  while (hasMore) {
+    const response = await notion.databases.query({
+      database_id: DATABASE_ID,
+      sorts: [
+        { property: 'Datum', direction: 'ascending' },
+        { property: 'Start', direction: 'ascending' }
+      ],
+      start_cursor: startCursor,
+      page_size: 100
+    });
+
+    allResults = allResults.concat(response.results);
+    hasMore = response.has_more;
+    startCursor = response.next_cursor;
+  }
+
+  return allResults;
+}
+
+async function build() {
+  console.log('📡 Rufe Events aus Notion ab ...');
+  const pages = await fetchAllEvents();
+  console.log(`✅ ${pages.length} Events gefunden.`);
+
   let html = '';
 
-  for (const page of response.results) {
+  for (const page of pages) {
     const p = page.properties;
-    const eventName     = getText(p['Event Name']) || 'Ohne Titel';
-    const datum         = getText(p['Datum']);
-    const start         = getText(p['Start']);
-    const ende          = getText(p['Ende']);
-    const wochentag     = getText(p['Wochentag']);
-    const kategorie     = getText(p['Kategorie']);
-    const status        = getText(p['Status']);
-    const ort           = getText(p['Veranstaltungsort']);
-    const beschreibung  = getText(p['Beschreibung']);
-    const veranstalter  = getText(p['Veranstalter']);
-    const quelle        = getText(p['Quelle']);
-    const link          = p['Link']?.url || '';
 
-    let datumFormatiert = datum;
-    if (datum && datum.length === 10) {
-      const [j, m, t] = datum.split('-');
-      const monate = ['JAN','FEB','MÄR','APR','MAI','JUN','JUL','AUG','SEP','OKT','NOV','DEZ'];
-      datumFormatiert = `${t}. ${monate[parseInt(m)-1]} ${j}`;
-    }
+    const name         = getText(p['Event Name']);
+    const datum        = getText(p['Datum']);
+    const start        = getText(p['Start']);
+    const ende         = getText(p['Ende']);
+    const wochentag    = getText(p['Wochentag']);
+    const kategorie    = getText(p['Kategorie']);
+    const status       = getText(p['Status']);
+    const ort          = getText(p['Veranstaltungsort']);
+    const beschreibung = getText(p['Beschreibung']);
+    const veranstalter = getText(p['Veranstalter']);
+    const link         = getText(p['Link']);
 
-    const zeit = start && ende ? `${start} — ${ende}` : start || '';
+    if (!name) continue;
+
+    const datumFormatiert = datum
+      ? new Date(datum).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' })
+      : '';
+
+    const zeitraum = start && ende ? `${start} — ${ende}` : start || '';
 
     html += `
-    <div style="margin-bottom:28px;padding:18px;background:rgba(255,255,255,0.04);border-radius:10px;border:1px solid rgba(150,91,242,0.2);">
-      <p style="margin:0 0 4px 0;font:12px 'Helvetica Neue';color:#965bf2;letter-spacing:1px;text-transform:uppercase;">${wochentag}${datumFormatiert ? ' · ' + datumFormatiert : ''}${zeit ? ' · ' + zeit : ''}</p>
-      <h3 style="margin:0 0 8px 0;font:bold 18px 'Helvetica Neue';color:#ffffff;">${eventName}</h3>
-      ${ort ? `<p style="margin:0 0 4px 0;font:13px 'Helvetica Neue';color:rgba(255,255,255,0.6);">📍 ${ort}</p>` : ''}
-      ${kategorie ? `<p style="margin:0 0 4px 0;font:12px 'Helvetica Neue';color:rgba(255,255,255,0.4);">🏷 ${kategorie}${status ? ' · ' + status : ''}</p>` : ''}
-      ${beschreibung ? `<p style="margin:8px 0;font:13px 'Helvetica Neue';color:rgba(255,255,255,0.55);line-height:1.5;">${beschreibung}</p>` : ''}
-      ${veranstalter ? `<p style="margin:4px 0;font:12px 'Helvetica Neue';color:rgba(255,255,255,0.35);">Host: ${veranstalter}${quelle ? ' · ' + quelle : ''}</p>` : ''}
-      ${link ? `<a href="${link}" target="_blank" style="display:inline-block;margin-top:10px;font:13px 'Helvetica Neue';color:#965bf2;text-decoration:none;">Zum Event →</a>` : ''}
+    <div class="event-card">
+      <div class="event-meta">
+        ${wochentag ? `<span class="event-tag">${wochentag}</span>` : ''}
+        ${datumFormatiert ? `<span class="event-date">${datumFormatiert}</span>` : ''}
+        ${zeitraum ? `<span class="event-time">${zeitraum}</span>` : ''}
+      </div>
+      <h3 class="event-title">${name}</h3>
+      ${ort ? `<div class="event-location">📍 ${ort}</div>` : ''}
+      ${kategorie ? `<div class="event-category">${kategorie}</div>` : ''}
+      ${status ? `<div class="event-status">${status}</div>` : ''}
+      ${beschreibung ? `<p class="event-desc">${beschreibung}</p>` : ''}
+      ${veranstalter ? `<div class="event-host">Host: ${veranstalter}</div>` : ''}
+      ${link ? `<a href="${link}" target="_blank" class="event-link">Zum Event →</a>` : ''}
     </div>`;
   }
 
@@ -77,7 +100,7 @@ async function fetchEvents() {
   console.log('🎉 Seite erfolgreich gebaut → public/index.html');
 }
 
-fetchEvents().catch(err => {
+build().catch(err => {
   console.error('Fehler:', err);
   process.exit(1);
 });
