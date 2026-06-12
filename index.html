@@ -428,6 +428,83 @@
     .tab{-webkit-tap-highlight-color:transparent}
     .chip{-webkit-tap-highlight-color:transparent}
   }
+
+  /* ── SEARCH BAR ── */
+  .search-wrap{width:100%;margin-bottom:10px}
+  .search-input{
+    width:100%;font-family:'Inter',sans-serif;font-size:13.5px;font-weight:400;
+    color:var(--white);background:rgba(255,255,255,0.06);
+    border:1px solid var(--line-strong);border-radius:10px;
+    padding:11px 16px 11px 40px;outline:none;transition:all 0.2s;
+    -webkit-appearance:none;appearance:none;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='15' height='15' viewBox='0 0 24 24' fill='none' stroke='rgba(255,255,255,0.45)' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cline x1='21' y1='21' x2='16.65' y2='16.65'/%3E%3C/svg%3E");
+    background-repeat:no-repeat;background-position:14px center;
+  }
+  .search-input::placeholder{color:rgba(255,255,255,0.38)}
+  .search-input:focus{border-color:var(--purple-light);background:rgba(255,255,255,0.09);box-shadow:0 0 0 3px rgba(168,119,245,0.12)}
+  @media(max-width:720px){.search-input{font-size:16px}}
+
+  /* ── DAY SECTION HEADERS ── */
+  .day-section{padding:36px 0 4px}
+  .day-section:first-child{padding-top:20px}
+  .day-header{
+    display:flex;align-items:baseline;gap:16px;
+    padding-bottom:18px;margin-bottom:24px;
+    border-bottom:1px solid var(--line-strong);
+  }
+  .day-title{
+    font-family:'Inter',sans-serif;font-weight:800;
+    font-size:clamp(28px,3.5vw,36px);line-height:1;
+    letter-spacing:-0.025em;color:var(--white);
+  }
+  .day-date{
+    font-size:11px;letter-spacing:0.16em;text-transform:uppercase;
+    color:var(--purple-light);font-weight:700;
+    background:rgba(168,119,245,0.12);border:1px solid rgba(168,119,245,0.3);
+    padding:5px 12px;border-radius:100px;
+  }
+  .day-count{
+    font-size:11px;letter-spacing:0.16em;text-transform:uppercase;
+    color:var(--text-dim);font-weight:600;margin-left:auto;
+  }
+
+  /* ── STATUS PILL EXTRAS ── */
+  .er-pill.waitlist{
+    color:#f4b97c;border-color:rgba(244,185,124,0.4);
+    background:rgba(244,185,124,0.06);
+  }
+  .er-pill.waitlist::before{content:"⏳ ";font-size:9px}
+  .er-pill.soldout{
+    color:rgba(255,255,255,0.38);border-color:rgba(255,255,255,0.14);
+    background:transparent;text-decoration:line-through;
+  }
+  .er-pill.paid{
+    color:#7ec8b9;border-color:rgba(126,200,185,0.4);
+    background:rgba(126,200,185,0.06);
+  }
+  .er-pill.paid::before{content:"💳 ";font-size:9px}
+
+  /* Sold out row — visually muted */
+  .event-row.is-soldout{opacity:0.45;pointer-events:none}
+  .event-row.is-soldout .er-title{text-decoration:line-through}
+
+  /* ── BACK TO TOP ── */
+  .back-to-top{
+    position:fixed;bottom:28px;right:28px;z-index:200;
+    width:44px;height:44px;border-radius:50%;
+    background:linear-gradient(135deg, var(--blue), var(--purple));
+    border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;
+    box-shadow:0 4px 18px rgba(40,84,239,0.5);
+    opacity:0;transform:translateY(12px);
+    transition:opacity 0.25s, transform 0.25s;
+    pointer-events:none;
+  }
+  .back-to-top.visible{opacity:1;transform:translateY(0);pointer-events:auto}
+  .back-to-top:hover{transform:translateY(-2px);box-shadow:0 8px 28px rgba(136,76,218,0.7)}
+  .back-to-top svg{display:block}
+
+  /* ── HIGHLIGHT SEARCH MATCH ── */
+  mark.hl{background:rgba(168,119,245,0.28);color:inherit;border-radius:2px;padding:0 1px}
 </style>
 </head>
 <body>
@@ -438,7 +515,7 @@
     <span class="accent">◆</span>
     <span>SuperReturn Intl. &amp; SuperVenture</span>
     <span class="accent">◆</span>
-    <span>59 curated side events</span>
+    <span><span id="topstripCount">156</span> curated side events</span>
   </div>
 </div>
 
@@ -461,7 +538,7 @@
   <section class="page-intro">
     <div class="eyebrow">SuperReturn / SuperVenture · Berlin 2026</div>
     <h1 class="page-title">The unofficial <em>side event</em> cheat list.</h1>
-    <p class="page-lede">59+ curated dinners, drinks, runs, breakfasts and parties across the SuperReturn International &amp; SuperVenture week. <strong>Free, no ads, no fluff</strong> — just the events worth your time.</p>
+    <p class="page-lede"><span id="ledeCount">156</span>+ curated dinners, drinks, runs, breakfasts and parties across the SuperReturn International &amp; SuperVenture week. <strong>Free, no ads, no fluff</strong> — just the events worth your time.</p>
   </section>
 
   <section class="conf-strip">
@@ -513,14 +590,21 @@
 
 <div class="container">
   <div class="vibe-row" id="vibeFilters" role="region" aria-label="Vibe filter">
+    <div class="search-wrap">
+      <input type="search" id="searchInput" class="search-input" placeholder="Search events, hosts, locations…" autocomplete="off" spellcheck="false" aria-label="Search events">
+    </div>
     <span class="vibe-label">Vibe</span>
     <button class="chip active" data-val="all">All</button>
     <button class="chip" data-val="activity">Activity</button>
     <button class="chip" data-val="wellness">Wellness</button>
     <button class="chip" data-val="breakfast">Breakfast</button>
+    <button class="chip" data-val="lunch">Lunch</button>
     <button class="chip" data-val="drinks">Drinks</button>
     <button class="chip" data-val="dinner">Dinner</button>
     <button class="chip" data-val="party">Party</button>
+    <button class="chip" data-val="panel">Panel</button>
+    <button class="chip" data-val="networking">Networking</button>
+    <span class="results-count" id="vibeCount"></span>
   </div>
 
   <main id="eventList"></main>
@@ -618,134 +702,231 @@
   </div>
 </footer>
 
+<button class="back-to-top" id="backToTop" aria-label="Back to top">
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"></polyline></svg>
+</button>
+
 <script>window.FOMO_EVENTS = /* FOMO_EVENTS_JSON */;</script>
 <script>
-function buildEventCard(e){
-  // Date label: prefer compact short form "Mon, 8 Jun"
-  const dayShort = ({mon:'Mon',tue:'Tue',wed:'Wed',thu:'Thu',fri:'Fri'})[e.day] || '';
-  // Derive day number from dateLabel "Mon · Jun 8, 2026" → 8
+/* ── helpers ── */
+function escapeHtml(s){
+  if(s==null) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function highlightMatch(text, query){
+  if(!query) return escapeHtml(text);
+  const safe = escapeHtml(text);
+  const safeQ = query.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+  return safe.replace(new RegExp(safeQ,'gi'), m => `<mark class="hl">${m}</mark>`);
+}
+
+/* ── event card builder ── */
+function buildEventCard(e, searchQuery){
+  const dayShort = ({sun:'Sun',mon:'Mon',tue:'Tue',wed:'Wed',thu:'Thu',fri:'Fri',sat:'Sat'})[e.day] || '';
   let dayNum = '';
   const m = String(e.dateLabel || '').match(/Jun\s*(\d+)/);
-  if (m) dayNum = m[1];
+  if(m) dayNum = m[1];
   const dateShort = (dayShort && dayNum) ? `${dayShort}, ${dayNum} Jun` : escapeHtml(e.dateLabel || '');
 
-  // Start time only (first part of "07:30 – 08:15")
   const timeStart = String(e.time || '').split('–')[0].trim();
 
-  // Action: arrow for registerable, lock for invite-only
-  const action = e.status === 'invite'
-    ? `<span class="lock" aria-label="Invite only">🔒</span>`
-    : `<a href="${escapeHtml(e.link)}" target="_blank" rel="noopener" aria-label="${escapeHtml(e.linkLabel)}"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg></a>`;
+  const action = (e.status === 'invite' || !e.link)
+    ? `<span class="lock" aria-label="Invite only" title="Invite only">🔒</span>`
+    : `<a href="${escapeHtml(e.link)}" target="_blank" rel="noopener" aria-label="Register for ${escapeHtml(e.title)}" title="Register"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg></a>`;
 
-  // Location: show muted placeholder if not yet disclosed
-  const isHiddenLoc = /^(disclosed after|visible after|hidden until|invite[- ]only|invitation only|—)/i.test((e.location || '').trim());
+  const isHiddenLoc = /^(disclosed after|visible after|hidden until|invite[- ]only|invitation only|—)/i.test((e.location||'').trim());
   const locHtml = isHiddenLoc
-    ? `<div class="er-loc empty" role="cell">Disclosed after approval</div>`
-    : `<div class="er-loc" role="cell">${escapeHtml(e.location)}</div>`;
+    ? `<div class="er-loc empty" role="cell">Location after approval</div>`
+    : `<div class="er-loc" role="cell">${highlightMatch(e.location||'', searchQuery)}</div>`;
 
-  // Status pill text shorter for table
-  const statusShort = ({invite:'Invite only', open:'RSVP', rsvp:'RSVP'})[e.status] || e.statusLabel;
+  const statusMap = {invite:'Invite only', open:'Open RSVP', rsvp:'RSVP', waitlist:'Waitlist', soldout:'Sold out', paid:'Paid'};
+  const statusShort = statusMap[e.status] || e.statusLabel || 'Open';
 
-  const rowClass = e.fomoHosted ? 'event-row fomo-hosted' : 'event-row';
+  const isSoldOut = e.status === 'soldout';
+  let rowClass = 'event-row';
+  if(e.fomoHosted) rowClass += ' fomo-hosted';
+  if(isSoldOut) rowClass += ' is-soldout';
+
   const fomoBadge = e.fomoHosted ? `<span class="er-pill fomo">FOMO Hosted</span>` : '';
+
   return `
     <div class="${rowClass}" role="row" data-day="${e.day}" data-cat="${e.cat}" data-status="${e.status}">
       <div class="er-date" role="cell">${dateShort}</div>
       <div class="er-time" role="cell">${escapeHtml(timeStart)}</div>
       <div class="er-event" role="cell">
-        <h3 class="er-title">${escapeHtml(e.title)}</h3>
+        <h3 class="er-title">${highlightMatch(e.title||'', searchQuery)}</h3>
         <div class="er-tags">
           ${fomoBadge}
           <span class="er-pill ${e.status}">${escapeHtml(statusShort)}</span>
           <span class="er-pill cat">${escapeHtml(e.catLabel)}</span>
         </div>
-        <p class="er-host"><b>${escapeHtml(e.host)}</b></p>
+        <p class="er-host"><b>${highlightMatch(e.host||'', searchQuery)}</b></p>
       </div>
       ${locHtml}
       <div class="er-action" role="cell">${action}</div>
     </div>
   `;
 }
-const dayMeta = {
-  sun: { label: "Sunday", date: "Sun, 7 Jun", short: "Sun, 7 Jun" },
-  mon: { label: "Monday", date: "Mon, 8 Jun", short: "Mon, 8 Jun" },
-  tue: { label: "Tuesday", date: "Tue, 9 Jun", short: "Tue, 9 Jun" },
-  wed: { label: "Wednesday", date: "Wed, 10 Jun", short: "Wed, 10 Jun" },
-  thu: { label: "Thursday", date: "Thu, 11 Jun", short: "Thu, 11 Jun" },
-  fri: { label: "Friday", date: "Fri, 12 Jun", short: "Fri, 12 Jun" },
-  sat: { label: "Saturday", date: "Sat, 13 Jun", short: "Sat, 13 Jun" }
-};
-const events = window.FOMO_EVENTS;
-const state = { day: 'all', cat: 'all' };
 
-function escapeHtml(s){
-  if(s==null) return '';
-  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+/* ── config ── */
+const dayMeta = {
+  sun: { label:"Sunday",    date:"Sun · 7 Jun"  },
+  mon: { label:"Monday",    date:"Mon · 8 Jun"  },
+  tue: { label:"Tuesday",   date:"Tue · 9 Jun"  },
+  wed: { label:"Wednesday", date:"Wed · 10 Jun" },
+  thu: { label:"Thursday",  date:"Thu · 11 Jun" },
+  fri: { label:"Friday",    date:"Fri · 12 Jun" },
+  sat: { label:"Saturday",  date:"Sat · 13 Jun" }
+};
+const dayOrder = {sun:0,mon:1,tue:2,wed:3,thu:4,fri:5,sat:6};
+
+const events = window.FOMO_EVENTS || [];
+const state = { day:'all', cat:'all', search:'' };
+
+/* ── dynamic counts in header ── */
+function updateHeaderCounts(){
+  const n = events.length;
+  const el1 = document.getElementById('topstripCount');
+  const el2 = document.getElementById('ledeCount');
+  if(el1) el1.textContent = n;
+  if(el2) el2.textContent = n;
 }
+
+/* ── filtering ── */
 function getFilteredEvents(){
-  // Sort by day then by start time
-  const dayOrder = { sun:0, mon:1, tue:2, wed:3, thu:4, fri:5, sat:6 };
+  const q = state.search.trim().toLowerCase();
   return events
-    .filter(e =>
-      (state.day === 'all' || e.day === state.day) &&
-      (state.cat === 'all' || e.cat === state.cat))
-    .sort((a, b) => {
-      if (dayOrder[a.day] !== dayOrder[b.day]) return dayOrder[a.day] - dayOrder[b.day];
-      return (a.time || '').localeCompare(b.time || '');
+    .filter(e => {
+      const matchDay = state.day === 'all' || e.day === state.day;
+      const matchCat = state.cat === 'all' || e.cat === state.cat;
+      const matchSearch = !q || [e.title,e.host,e.location,e.catLabel,e.desc]
+        .some(f => (f||'').toLowerCase().includes(q));
+      return matchDay && matchCat && matchSearch;
+    })
+    .sort((a,b) => {
+      if(dayOrder[a.day] !== dayOrder[b.day]) return dayOrder[a.day] - dayOrder[b.day];
+      return (a.time||'').localeCompare(b.time||'');
     });
 }
+
+/* ── render ── */
 function render(){
   const filtered = getFilteredEvents();
   const list = document.getElementById('eventList');
   const empty = document.getElementById('empty');
+  const q = state.search.trim().toLowerCase();
 
   if(filtered.length === 0){
     list.innerHTML = '';
     empty.classList.add('show');
     document.getElementById('resultsCount').textContent = '0 events';
+    const vc = document.getElementById('vibeCount');
+    if(vc) vc.textContent = '';
     return;
   }
   empty.classList.remove('show');
 
-  list.innerHTML = `
-    <div class="events-table" role="table">
-      <div class="events-thead" role="rowgroup">
-        <div class="events-thead-row" role="row">
-          <div class="th th-date" role="columnheader">Date</div>
-          <div class="th th-time" role="columnheader">Time</div>
-          <div class="th th-event" role="columnheader">Event</div>
-          <div class="th th-loc" role="columnheader">Location</div>
-          <div class="th th-action" role="columnheader" aria-label="Action"></div>
+  // When showing all days, group events by day with section headers
+  const showGroups = state.day === 'all' && !q;
+
+  let html = '';
+  if(showGroups){
+    // Group by day
+    const byDay = {};
+    for(const e of filtered){
+      if(!byDay[e.day]) byDay[e.day] = [];
+      byDay[e.day].push(e);
+    }
+    const days = Object.keys(byDay).sort((a,b) => dayOrder[a]-dayOrder[b]);
+    for(const day of days){
+      const meta = dayMeta[day] || {label:day, date:''};
+      const evs = byDay[day];
+      html += `
+        <section class="day-section" aria-label="${meta.label}">
+          <div class="day-header">
+            <h3 class="day-title">${meta.label}</h3>
+            <span class="day-date">${meta.date}</span>
+            <span class="day-count">${evs.length} event${evs.length===1?'':'s'}</span>
+          </div>
+          <div class="events-table" role="table">
+            <div class="events-thead" role="rowgroup">
+              <div class="events-thead-row" role="row">
+                <div class="th" role="columnheader">Date</div>
+                <div class="th" role="columnheader">Time</div>
+                <div class="th" role="columnheader">Event</div>
+                <div class="th" role="columnheader">Location</div>
+                <div class="th" role="columnheader" aria-label="Action"></div>
+              </div>
+            </div>
+            <div role="rowgroup">${evs.map(e=>buildEventCard(e,q)).join('')}</div>
+          </div>
+        </section>`;
+    }
+  } else {
+    html = `
+      <div class="events-table" role="table">
+        <div class="events-thead" role="rowgroup">
+          <div class="events-thead-row" role="row">
+            <div class="th" role="columnheader">Date</div>
+            <div class="th" role="columnheader">Time</div>
+            <div class="th" role="columnheader">Event</div>
+            <div class="th" role="columnheader">Location</div>
+            <div class="th" role="columnheader" aria-label="Action"></div>
+          </div>
         </div>
-      </div>
-      <div class="events-tbody" role="rowgroup">
-        ${filtered.map(buildEventCard).join('')}
-      </div>
-    </div>
-  `;
-  document.getElementById('resultsCount').textContent =
-    `${filtered.length} ${filtered.length === 1 ? 'event' : 'events'}`;
+        <div role="rowgroup">${filtered.map(e=>buildEventCard(e,q)).join('')}</div>
+      </div>`;
+  }
+
+  list.innerHTML = html;
+  const label = `${filtered.length} ${filtered.length===1?'event':'events'}`;
+  document.getElementById('resultsCount').textContent = label;
+  const vc = document.getElementById('vibeCount');
+  if(vc) vc.textContent = filtered.length < events.length ? label : '';
 }
-// Day tabs
+
+/* ── day tabs ── */
 document.getElementById('dayTabs').addEventListener('click', e => {
   const tab = e.target.closest('.tab');
   if(!tab) return;
-  const val = tab.dataset.val;
-  state.day = val;
-  document.querySelectorAll('#dayTabs .tab').forEach(t => t.classList.toggle('active', t.dataset.val === val));
+  state.day = tab.dataset.val;
+  document.querySelectorAll('#dayTabs .tab').forEach(t => t.classList.toggle('active', t.dataset.val === state.day));
   render();
   const top = document.getElementById('eventsTop');
-  if(top) top.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  if(top) top.scrollIntoView({behavior:'smooth', block:'start'});
 });
-// Vibe filters
+
+/* ── vibe chips ── */
 document.getElementById('vibeFilters').addEventListener('click', e => {
   const chip = e.target.closest('.chip');
   if(!chip) return;
-  const val = chip.dataset.val;
-  state.cat = val;
-  document.querySelectorAll('#vibeFilters .chip').forEach(c => c.classList.toggle('active', c.dataset.val === val));
+  state.cat = chip.dataset.val;
+  document.querySelectorAll('#vibeFilters .chip').forEach(c => c.classList.toggle('active', c.dataset.val === state.cat));
   render();
 });
+
+/* ── search ── */
+let searchDebounce;
+document.getElementById('searchInput').addEventListener('input', e => {
+  clearTimeout(searchDebounce);
+  searchDebounce = setTimeout(() => {
+    state.search = e.target.value;
+    render();
+  }, 180);
+});
+document.getElementById('searchInput').addEventListener('keydown', e => {
+  if(e.key === 'Escape'){ e.target.value=''; state.search=''; render(); }
+});
+
+/* ── back to top ── */
+const btt = document.getElementById('backToTop');
+window.addEventListener('scroll', () => {
+  btt.classList.toggle('visible', window.scrollY > 500);
+}, {passive:true});
+btt.addEventListener('click', () => window.scrollTo({top:0, behavior:'smooth'}));
+
+/* ── init ── */
+updateHeaderCounts();
 render();
 
 </script>
