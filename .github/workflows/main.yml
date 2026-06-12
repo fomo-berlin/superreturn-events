@@ -2,7 +2,7 @@ name: Update Event-Liste alle 10 Minuten
 
 on:
   schedule:
-    - cron: '*/10 * * * *'
+    - cron: "*/10 * * * *"
   workflow_dispatch:
 
 jobs:
@@ -15,10 +15,10 @@ jobs:
       - name: Node.js einrichten
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: "20"
 
       - name: Abhängigkeiten installieren
-        run: npm ci
+        run: npm install
 
       - name: Seite bauen
         env:
@@ -26,8 +26,8 @@ jobs:
           NOTION_DATABASE_ID: ${{ secrets.NOTION_DATABASE_ID }}
         run: npm run build
 
-      - name: Auf Cloudflare Pages deployen
+      - name: Auf Cloudflare Workers deployen
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        run: npx wrangler pages deploy public --project-name=superreturn-events --commit-dirty=true
+        run: npx wrangler deploy
