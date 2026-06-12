@@ -43,12 +43,50 @@ async function fetchAllEvents() {
   return allResults;
 }
 
+function getDayKey(datum) {
+  if (!datum) return 'mon';
+  const d = new Date(datum);
+  return ['sun','mon','tue','wed','thu','fri','sat'][d.getUTCDay()];
+}
+
+function getDateLabel(datum, wochentag) {
+  if (!datum) return '';
+  const d = new Date(datum);
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  return `${days[d.getUTCDay()]} · ${months[d.getUTCMonth()]} ${d.getUTCDate()}, ${d.getUTCFullYear()}`;
+}
+
+function getCatKey(kategorie) {
+  if (!kategorie) return 'networking';
+  const k = kategorie.toLowerCase();
+  if (k.includes('activity') || k.includes('sport') || k.includes('run') || k.includes('yoga') || k.includes('fitness')) return 'activity';
+  if (k.includes('wellness') || k.includes('meditation') || k.includes('yoga')) return 'wellness';
+  if (k.includes('breakfast') || k.includes('brunch')) return 'breakfast';
+  if (k.includes('drinks') || k.includes('reception') || k.includes('cocktail') || k.includes('aperitivo') || k.includes('sundowner')) return 'drinks';
+  if (k.includes('dinner')) return 'dinner';
+  if (k.includes('party')) return 'party';
+  if (k.includes('lunch')) return 'lunch';
+  if (k.includes('panel') || k.includes('roundtable') || k.includes('summit') || k.includes('conference')) return 'panel';
+  return 'networking';
+}
+
+function getStatusKey(status) {
+  if (!status) return 'open';
+  const s = status.toLowerCase();
+  if (s.includes('invite') || s.includes('invitation') || s.includes('private')) return 'invite';
+  if (s.includes('waitlist') || s.includes('wait list')) return 'waitlist';
+  if (s.includes('sold out')) return 'soldout';
+  if (s.includes('paid')) return 'paid';
+  return 'open';
+}
+
 async function build() {
   console.log('📡 Rufe Events aus Notion ab ...');
   const pages = await fetchAllEvents();
   console.log(`✅ ${pages.length} Events gefunden.`);
 
-  let html = '';
+  const events = [];
 
   for (const page of pages) {
     const p = page.properties;
@@ -66,31 +104,36 @@ async function build() {
 
     if (!name) continue;
 
-    const datumFormatiert = datum
-      ? new Date(datum).toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' }).toUpperCase()
-      : '';
+    const dayKey = getDayKey(datum);
+    const catKey = getCatKey(kategorie);
+    const statusKey = getStatusKey(status);
+    const timeStr = start && ende ? `${start} – ${ende}` : (start || '');
 
-    const zeitraum = start && ende ? `${start} — ${ende}` : start || '';
-    const metaLine = [wochentag, datumFormatiert, zeitraum].filter(Boolean).join(' · ');
-    const subLine  = [kategorie, status].filter(Boolean).join(' · ');
-
-    html += `
-<div style="padding:24px 0;border-bottom:1px solid rgba(255,255,255,0.08);">
-  ${metaLine ? `<div style="font-size:12px;font-weight:600;letter-spacing:0.08em;color:#965bf2;margin-bottom:8px;text-transform:uppercase;">${metaLine}</div>` : ''}
-  <h3 style="font-size:20px;font-weight:700;color:#fff;margin:0 0 10px;line-height:1.3;">${name}</h3>
-  ${ort ? `<div style="font-size:14px;color:rgba(255,255,255,0.5);margin-bottom:6px;">📍 ${ort}</div>` : ''}
-  ${subLine ? `<div style="font-size:13px;color:rgba(255,255,255,0.4);margin-bottom:8px;">${subLine}</div>` : ''}
-  ${beschreibung ? `<p style="font-size:14px;color:rgba(255,255,255,0.6);margin:0 0 8px;line-height:1.6;">${beschreibung}</p>` : ''}
-  ${veranstalter ? `<div style="font-size:13px;color:rgba(255,255,255,0.4);margin-bottom:8px;">Host: ${veranstalter}</div>` : ''}
-  ${link ? `<a href="${link}" target="_blank" style="font-size:13px;color:#965bf2;text-decoration:none;font-weight:600;">Zum Event →</a>` : ''}
-</div>`;
+    events.push({
+      day: dayKey,
+      cat: catKey,
+      catLabel: kategorie || 'Networking',
+      title: name,
+      host: veranstalter || '',
+      desc: beschreibung || '',
+      time: timeStr,
+      location: ort || '',
+      audience: kategorie || '',
+      status: statusKey,
+      statusLabel: status || 'Open registration',
+      link: link || '',
+      linkLabel: link ? 'Register ↗' : '',
+      dateLabel: getDateLabel(datum, wochentag)
+    });
   }
 
+  const eventsJson = JSON.stringify(events, null, 2);
+
   const template = fs.readFileSync('index.html', 'utf8');
-  const output = template.replace('<!-- EVENT_LISTE -->', html);
+  const output = template.replace('/* FOMO_EVENTS_JSON */', eventsJson);
   fs.mkdirSync('public', { recursive: true });
   fs.writeFileSync('public/index.html', output);
-  console.log('🎉 Seite erfolgreich gebaut → public/index.html');
+  console.log(`🎉 Seite erfolgreich gebaut → public/index.html (${events.length} Events)`);
 }
 
 build().catch(err => { console.error('Fehler:', err); process.exit(1); });
