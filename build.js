@@ -26,7 +26,6 @@ async function fetchAllEvents() {
   let allResults = [];
   let hasMore = true;
   let startCursor = undefined;
-
   while (hasMore) {
     const response = await notion.databases.query({
       database_id: DATABASE_ID,
@@ -37,12 +36,10 @@ async function fetchAllEvents() {
       start_cursor: startCursor,
       page_size: 100
     });
-
     allResults = allResults.concat(response.results);
     hasMore = response.has_more;
     startCursor = response.next_cursor;
   }
-
   return allResults;
 }
 
@@ -55,7 +52,6 @@ async function build() {
 
   for (const page of pages) {
     const p = page.properties;
-
     const name         = getText(p['Event Name']);
     const datum        = getText(p['Datum']);
     const start        = getText(p['Start']);
@@ -71,26 +67,23 @@ async function build() {
     if (!name) continue;
 
     const datumFormatiert = datum
-      ? new Date(datum).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' })
+      ? new Date(datum).toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' }).toUpperCase()
       : '';
 
     const zeitraum = start && ende ? `${start} — ${ende}` : start || '';
+    const metaLine = [wochentag, datumFormatiert, zeitraum].filter(Boolean).join(' · ');
+    const subLine  = [kategorie, status].filter(Boolean).join(' · ');
 
     html += `
-    <div class="event-card">
-      <div class="event-meta">
-        ${wochentag ? `<span class="event-tag">${wochentag}</span>` : ''}
-        ${datumFormatiert ? `<span class="event-date">${datumFormatiert}</span>` : ''}
-        ${zeitraum ? `<span class="event-time">${zeitraum}</span>` : ''}
-      </div>
-      <h3 class="event-title">${name}</h3>
-      ${ort ? `<div class="event-location">📍 ${ort}</div>` : ''}
-      ${kategorie ? `<div class="event-category">${kategorie}</div>` : ''}
-      ${status ? `<div class="event-status">${status}</div>` : ''}
-      ${beschreibung ? `<p class="event-desc">${beschreibung}</p>` : ''}
-      ${veranstalter ? `<div class="event-host">Host: ${veranstalter}</div>` : ''}
-      ${link ? `<a href="${link}" target="_blank" class="event-link">Zum Event →</a>` : ''}
-    </div>`;
+<div style="padding:24px 0;border-bottom:1px solid rgba(255,255,255,0.08);">
+  ${metaLine ? `<div style="font-size:12px;font-weight:600;letter-spacing:0.08em;color:#965bf2;margin-bottom:8px;text-transform:uppercase;">${metaLine}</div>` : ''}
+  <h3 style="font-size:20px;font-weight:700;color:#fff;margin:0 0 10px;line-height:1.3;">${name}</h3>
+  ${ort ? `<div style="font-size:14px;color:rgba(255,255,255,0.5);margin-bottom:6px;">📍 ${ort}</div>` : ''}
+  ${subLine ? `<div style="font-size:13px;color:rgba(255,255,255,0.4);margin-bottom:8px;">${subLine}</div>` : ''}
+  ${beschreibung ? `<p style="font-size:14px;color:rgba(255,255,255,0.6);margin:0 0 8px;line-height:1.6;">${beschreibung}</p>` : ''}
+  ${veranstalter ? `<div style="font-size:13px;color:rgba(255,255,255,0.4);margin-bottom:8px;">Host: ${veranstalter}</div>` : ''}
+  ${link ? `<a href="${link}" target="_blank" style="font-size:13px;color:#965bf2;text-decoration:none;font-weight:600;">Zum Event →</a>` : ''}
+</div>`;
   }
 
   const template = fs.readFileSync('index.html', 'utf8');
@@ -100,7 +93,4 @@ async function build() {
   console.log('🎉 Seite erfolgreich gebaut → public/index.html');
 }
 
-build().catch(err => {
-  console.error('Fehler:', err);
-  process.exit(1);
-});
+build().catch(err => { console.error('Fehler:', err); process.exit(1); });
